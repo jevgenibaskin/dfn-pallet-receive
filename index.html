@@ -320,41 +320,47 @@ document.getElementById('stated-weight').addEventListener('input', updateDiff);
 document.getElementById('actual-weight').addEventListener('input', updateDiff);
 
 // --- Photos ---
-for (let i = 0; i < 6; i++) {
+function setupPhotoSlot(i) {
   const slot = document.getElementById(`photo-slot-${i}`);
   const input = document.getElementById(`photo-input-${i}`);
-  slot.addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove')) {
+  slot.onclick = (e) => {
+    // If click landed on the remove button (or its child), remove photo and stop
+    if (e.target.closest('.remove')) {
+      e.stopPropagation();
+      e.preventDefault();
       delete photos[i];
-      slot.innerHTML = '+' + input.outerHTML;
-      slot.classList.remove('has-photo');
-      rewireSlotInput(i);
+      renderSlot(i, null);
       return;
     }
-    input.click();
-  });
-  input.addEventListener('change', async (e) => {
+    // Only open file picker if no photo yet
+    if (!photos[i]) {
+      input.click();
+    }
+  };
+  input.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const compressed = await compressImage(file);
     photos[i] = compressed;
-    slot.innerHTML = `<img src="${compressed.dataUrl}"><div class="remove">×</div>` + input.outerHTML;
-    slot.classList.add('has-photo');
-    rewireSlotInput(i);
-  });
+    renderSlot(i, compressed.dataUrl);
+  };
 }
-function rewireSlotInput(i) {
-  const input = document.getElementById(`photo-input-${i}`);
-  input.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const compressed = await compressImage(file);
-    photos[i] = compressed;
-    const slot = document.getElementById(`photo-slot-${i}`);
-    slot.innerHTML = `<img src="${compressed.dataUrl}"><div class="remove">×</div>` + input.outerHTML;
+
+function renderSlot(i, dataUrl) {
+  const slot = document.getElementById(`photo-slot-${i}`);
+  const inputId = `photo-input-${i}`;
+  if (dataUrl) {
+    slot.innerHTML = `<img src="${dataUrl}"><div class="remove">×</div><input type="file" accept="image/*" capture="environment" id="${inputId}" style="display:none">`;
     slot.classList.add('has-photo');
-    rewireSlotInput(i);
-  });
+  } else {
+    slot.innerHTML = `<span style="pointer-events:none;">+</span><input type="file" accept="image/*" capture="environment" id="${inputId}" style="display:none">`;
+    slot.classList.remove('has-photo');
+  }
+  setupPhotoSlot(i);
+}
+
+for (let i = 0; i < 6; i++) {
+  setupPhotoSlot(i);
 }
 
 async function compressImage(file) {
@@ -471,10 +477,7 @@ document.getElementById('new-receipt-btn').addEventListener('click', () => {
   document.getElementById('notes').value = '';
   for (let i = 0; i < 6; i++) {
     delete photos[i];
-    const slot = document.getElementById(`photo-slot-${i}`);
-    slot.innerHTML = '+<input type="file" accept="image/*" capture="environment" id="photo-input-' + i + '" style="display:none">';
-    slot.classList.remove('has-photo');
-    rewireSlotInput(i);
+    renderSlot(i, null);
   }
   document.getElementById('diff-preview').textContent = 'Enter both weights to see difference';
   document.getElementById('diff-preview').className = 'diff-preview';

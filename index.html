@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pallet Receive">
+<meta name="theme-color" content="#d40511">
+<title>DFN Pallet Receive</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📦%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --primary: #d40511;
+    --primary-dark: #a30410;
+    --success: #1a7f37;
+    --warning: #d4a72c;
+    --danger: #cf222e;
+    --bg: #f6f8fa;
+    --card: #fff;
+    --border: #d0d7de;
+    --fg: #1f2328;
+    --muted: #656d76;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--fg); font-size: 16px;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+  }
+  header {
+    background: var(--primary); color: #fff; padding: 14px 16px;
+    position: sticky; top: 0; z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  header .sub { font-size: 12px; opacity: 0.9; margin-top: 2px; }
+  main { padding: 16px; max-width: 600px; margin: 0 auto; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px; margin-bottom: 14px;
+  }
+  label {
+    display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px;
+    color: var(--fg);
+  }
+  label .required { color: var(--danger); }
+  input[type="text"], input[type="number"], select, textarea {
+    width: 100%; padding: 12px; font-size: 16px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--fg);
+    -webkit-appearance: none; appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(212,5,17,0.1);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  .weight-field { position: relative; }
+  .weight-field::after {
+    content: 'kg'; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: 14px; pointer-events: none;
+  }
+  .weight-field input { padding-right: 36px; }
+  .checkbox-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+  .checkbox-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--primary); }
+  .checkbox-row label { margin: 0; font-weight: 500; }
+  .photo-section { }
+  .photo-list {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;
+  }
+  .photo-thumb {
+    aspect-ratio: 1; background: var(--bg); border: 2px dashed var(--border); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; overflow: hidden; position: relative;
+    font-size: 24px; color: var(--muted);
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb.has-photo { border-style: solid; border-color: var(--primary); }
+  .photo-thumb .remove {
+    position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: #fff;
+    width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: bold; cursor: pointer;
+  }
+  .photo-label { font-size: 10px; text-align: center; margin-top: 4px; color: var(--muted); }
+  .diff-preview {
+    margin-top: 12px; padding: 12px; border-radius: 8px;
+    text-align: center; font-weight: 600;
+    background: #f6f8fa; color: var(--muted);
+  }
+  .diff-preview.ok { background: #dafbe1; color: var(--success); }
+  .diff-preview.warn { background: #fff8c5; color: #7d4e00; }
+  .diff-preview.bad { background: #ffebe9; color: var(--danger); }
+  button[type="submit"] {
+    width: 100%; padding: 16px; font-size: 17px; font-weight: 600;
+    background: var(--primary); color: #fff; border: none; border-radius: 10px;
+    cursor: pointer; margin-top: 8px;
+  }
+  button[type="submit"]:active { background: var(--primary-dark); }
+  button[type="submit"]:disabled { opacity: 0.5; cursor: wait; }
+  .status {
+    margin-top: 12px; padding: 12px; border-radius: 8px; text-align: center;
+    font-weight: 500; font-size: 14px;
+  }
+  .status.loading { background: #ddf4ff; color: #0969da; }
+  .status.success { background: #dafbe1; color: var(--success); }
+  .status.error { background: #ffebe9; color: var(--danger); }
+  .confirmation {
+    text-align: center; padding: 24px 16px;
+  }
+  .confirmation .icon { font-size: 60px; margin-bottom: 12px; }
+  .confirmation h2 { margin: 0 0 8px; }
+  .confirmation p { margin: 6px 0; color: var(--muted); font-size: 14px; }
+  .confirmation .big-stat { font-size: 22px; font-weight: 700; color: var(--fg); margin: 12px 0; }
+  .btn-secondary {
+    display: inline-block; padding: 12px 20px; font-size: 15px; font-weight: 500;
+    background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; margin: 6px 4px; text-decoration: none;
+  }
+  .btn-primary {
+    display: inline-block; padding: 12px 20px; font-size: 15px; font-weight: 500;
+    background: var(--primary); color: #fff; border: none; border-radius: 8px;
+    cursor: pointer; margin: 6px 4px; text-decoration: none;
+  }
+  .hidden { display: none !important; }
+  .helper { font-size: 12px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📦 DFN Pallet Receive</h1>
+  <div class="sub" id="header-sub">Leipzig warehouse · <span id="operator-display">—</span></div>
+</header>
+
+<main id="main">
+  <form id="receive-form">
+    <!-- Operator -->
+    <div class="card">
+      <label for="operator">Operator <span class="required">*</span></label>
+      <select id="operator" required>
+        <option value="">Select operator…</option>
+        <option>Govind Babu</option>
+        <option>Regina Andoh</option>
+        <option>Anthony Maduagwu</option>
+        <option>Other</option>
+      </select>
+      <input type="text" id="operator-other" placeholder="Operator name" class="hidden" style="margin-top:8px;">
+    </div>
+
+    <!-- Waybill / Pallet ID -->
+    <div class="card">
+      <label for="waybill">Waybill or Pallet ID <span class="required">*</span></label>
+      <input type="text" id="waybill" placeholder="e.g. TO_SWAPPIE_041126_02 or 12 3501 2515" required autocapitalize="characters" autocorrect="off" spellcheck="false">
+      <div class="helper">From the DHL label — the long reference or waybill number.</div>
+    </div>
+
+    <!-- Origin -->
+    <div class="card">
+      <label for="origin">Origin <span class="required">*</span></label>
+      <select id="origin" required>
+        <option value="">Select origin…</option>
+        <option>IT-MIL (Mora di Liscate)</option>
+        <option>NL-NIJ (Nijmegen)</option>
+        <option>DE-LEJ (Leipzig internal)</option>
+        <option>Other</option>
+      </select>
+      <input type="text" id="origin-other" placeholder="Origin" class="hidden" style="margin-top:8px;">
+    </div>
+
+    <!-- Weights -->
+    <div class="card">
+      <label>Weights <span class="required">*</span></label>
+      <div class="row" style="margin-top:4px;">
+        <div>
+          <label for="stated-weight" style="font-weight:500; font-size:12px;">On label</label>
+          <div class="weight-field">
+            <input type="number" id="stated-weight" step="0.1" inputmode="decimal" placeholder="26.0" required>
+          </div>
+        </div>
+        <div>
+          <label for="actual-weight" style="font-weight:500; font-size:12px;">Actual (scale)</label>
+          <div class="weight-field">
+            <input type="number" id="actual-weight" step="0.1" inputmode="decimal" placeholder="25.0" required>
+          </div>
+        </div>
+      </div>
+      <div class="diff-preview" id="diff-preview">Enter both weights to see difference</div>
+    </div>
+
+    <!-- Damage + notes -->
+    <div class="card">
+      <div class="checkbox-row">
+        <input type="checkbox" id="damage">
+        <label for="damage">Damage observed</label>
+      </div>
+      <label for="notes" style="margin-top:8px;">Notes (optional)</label>
+      <textarea id="notes" placeholder="e.g. torn tape, visible dents, tampered seal…"></textarea>
+    </div>
+
+    <!-- Photos -->
+    <div class="card photo-section">
+      <label>Photos <span class="required">*</span></label>
+      <div class="helper">Take at least one photo of the label and one of the scale display.</div>
+      <div class="photo-list">
+        <div>
+          <div class="photo-thumb" data-slot="0" id="photo-slot-0">+<input type="file" accept="image/*" capture="environment" id="photo-input-0" style="display:none"></div>
+          <div class="photo-label">Label</div>
+        </div>
+        <div>
+          <div class="photo-thumb" data-slot="1" id="photo-slot-1">+<input type="file" accept="image/*" capture="environment" id="photo-input-1" style="display:none"></div>
+          <div class="photo-label">Scale</div>
+        </div>
+        <div>
+          <div class="photo-thumb" data-slot="2" id="photo-slot-2">+<input type="file" accept="image/*" capture="environment" id="photo-input-2" style="display:none"></div>
+          <div class="photo-label">Damage/other</div>
+        </div>
+        <div>
+          <div class="photo-thumb" data-slot="3" id="photo-slot-3">+<input type="file" accept="image/*" capture="environment" id="photo-input-3" style="display:none"></div>
+          <div class="photo-label">Extra</div>
+        </div>
+        <div>
+          <div class="photo-thumb" data-slot="4" id="photo-slot-4">+<input type="file" accept="image/*" capture="environment" id="photo-input-4" style="display:none"></div>
+          <div class="photo-label">Extra</div>
+        </div>
+        <div>
+          <div class="photo-thumb" data-slot="5" id="photo-slot-5">+<input type="file" accept="image/*" capture="environment" id="photo-input-5" style="display:none"></div>
+          <div class="photo-label">Extra</div>
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" id="submit-btn">Submit receipt</button>
+    <div id="status" class="status hidden"></div>
+  </form>
+
+  <!-- Confirmation screen -->
+  <div class="card confirmation hidden" id="confirmation">
+    <div class="icon" id="conf-icon">✅</div>
+    <h2 id="conf-title">Pallet registered</h2>
+    <p id="conf-waybill"></p>
+    <div class="big-stat" id="conf-weights"></div>
+    <p id="conf-diff" style="font-weight:600;"></p>
+    <p id="conf-notify" style="font-size:13px;"></p>
+    <div style="margin-top:20px;">
+      <button class="btn-primary" id="new-receipt-btn">Receive next pallet</button>
+      <a class="btn-secondary" id="sheet-link" target="_blank">Open sheet</a>
+    </div>
+  </div>
+</main>
+
+<script>
+const API_URL = 'https://script.google.com/a/macros/swappie.com/s/AKfycbw9om-iL8bqcEBNbxXm0WKyQdpeMJepdcXPSyBf1eR02ymMkZXdj3GCfJsb1ENIQRI5/exec';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1TIBzMDDoeDc9eboS3WncliHeG8yurdxYBLIWO72xKzA/edit#gid=0';
+const DISCREPANCY_KG = 2;
+const DISCREPANCY_PCT = 10;
+
+const photos = {}; // slot -> {name, base64, mimeType, dataUrl}
+
+// --- Operator persistence ---
+const savedOperator = localStorage.getItem('pallet_operator');
+if (savedOperator) {
+  const select = document.getElementById('operator');
+  const known = ['Govind Babu','Regina Andoh','Anthony Maduagwu'];
+  if (known.includes(savedOperator)) {
+    select.value = savedOperator;
+  } else {
+    select.value = 'Other';
+    document.getElementById('operator-other').classList.remove('hidden');
+    document.getElementById('operator-other').value = savedOperator;
+  }
+  document.getElementById('operator-display').textContent = savedOperator;
+}
+
+document.getElementById('operator').addEventListener('change', (e) => {
+  const other = document.getElementById('operator-other');
+  if (e.target.value === 'Other') { other.classList.remove('hidden'); other.focus(); }
+  else { other.classList.add('hidden'); }
+  updateOperatorDisplay();
+});
+document.getElementById('operator-other').addEventListener('input', updateOperatorDisplay);
+function updateOperatorDisplay() {
+  const name = getOperator();
+  document.getElementById('operator-display').textContent = name || '—';
+  if (name) localStorage.setItem('pallet_operator', name);
+}
+function getOperator() {
+  const sel = document.getElementById('operator').value;
+  if (sel === 'Other') return document.getElementById('operator-other').value.trim();
+  return sel;
+}
+
+document.getElementById('origin').addEventListener('change', (e) => {
+  const other = document.getElementById('origin-other');
+  if (e.target.value === 'Other') { other.classList.remove('hidden'); other.focus(); }
+  else { other.classList.add('hidden'); }
+});
+
+// --- Weight diff preview ---
+function updateDiff() {
+  const stated = parseFloat(document.getElementById('stated-weight').value);
+  const actual = parseFloat(document.getElementById('actual-weight').value);
+  const preview = document.getElementById('diff-preview');
+  preview.className = 'diff-preview';
+  if (isNaN(stated) || isNaN(actual) || stated === 0) {
+    preview.textContent = 'Enter both weights to see difference';
+    return;
+  }
+  const diff = +(actual - stated).toFixed(2);
+  const diffPct = +((diff / stated) * 100).toFixed(1);
+  const isDiscrep = Math.abs(diff) > DISCREPANCY_KG || Math.abs(diffPct) > DISCREPANCY_PCT;
+  const sign = diff > 0 ? '+' : '';
+  preview.textContent = `Difference: ${sign}${diff} kg (${sign}${diffPct}%)`;
+  if (diff === 0) preview.classList.add('ok');
+  else if (isDiscrep) preview.classList.add('bad');
+  else preview.classList.add('warn');
+}
+document.getElementById('stated-weight').addEventListener('input', updateDiff);
+document.getElementById('actual-weight').addEventListener('input', updateDiff);
+
+// --- Photos ---
+for (let i = 0; i < 6; i++) {
+  const slot = document.getElementById(`photo-slot-${i}`);
+  const input = document.getElementById(`photo-input-${i}`);
+  slot.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove')) {
+      delete photos[i];
+      slot.innerHTML = '+' + input.outerHTML;
+      slot.classList.remove('has-photo');
+      rewireSlotInput(i);
+      return;
+    }
+    input.click();
+  });
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const compressed = await compressImage(file);
+    photos[i] = compressed;
+    slot.innerHTML = `<img src="${compressed.dataUrl}"><div class="remove">×</div>` + input.outerHTML;
+    slot.classList.add('has-photo');
+    rewireSlotInput(i);
+  });
+}
+function rewireSlotInput(i) {
+  const input = document.getElementById(`photo-input-${i}`);
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const compressed = await compressImage(file);
+    photos[i] = compressed;
+    const slot = document.getElementById(`photo-slot-${i}`);
+    slot.innerHTML = `<img src="${compressed.dataUrl}"><div class="remove">×</div>` + input.outerHTML;
+    slot.classList.add('has-photo');
+    rewireSlotInput(i);
+  });
+}
+
+async function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1600;
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+        const base64 = dataUrl.split(',')[1];
+        resolve({
+          name: file.name,
+          base64,
+          mimeType: 'image/jpeg',
+          dataUrl
+        });
+      };
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// --- Submit ---
+document.getElementById('receive-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const operator = getOperator();
+  if (!operator) { showStatus('Please select or enter operator name.', 'error'); return; }
+
+  const waybill = document.getElementById('waybill').value.trim();
+  const originSel = document.getElementById('origin').value;
+  const origin = originSel === 'Other' ? document.getElementById('origin-other').value.trim() : originSel;
+  const stated = parseFloat(document.getElementById('stated-weight').value);
+  const actual = parseFloat(document.getElementById('actual-weight').value);
+  const damage = document.getElementById('damage').checked;
+  const notes = document.getElementById('notes').value.trim();
+
+  const photoList = Object.keys(photos).sort().map(k => photos[k]);
+  if (photoList.length === 0) {
+    showStatus('Please take at least one photo (label).', 'error'); return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  showStatus('Uploading photos and saving…', 'loading');
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      // Apps Script web apps accept text/plain to avoid CORS preflight
+      body: JSON.stringify({
+        operator, waybill, origin,
+        stated_weight: stated, actual_weight: actual,
+        damage, notes,
+        photos: photoList.map(p => ({ base64: p.base64, mimeType: p.mimeType }))
+      }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    });
+    const result = await resp.json();
+    if (!result.ok) throw new Error(result.error || 'Unknown error');
+    showConfirmation(result, { waybill, stated, actual });
+  } catch (err) {
+    showStatus('Submit failed: ' + err.message + ' — please try again.', 'error');
+    btn.disabled = false; btn.textContent = 'Submit receipt';
+  }
+});
+
+function showStatus(msg, type) {
+  const s = document.getElementById('status');
+  s.textContent = msg; s.className = 'status ' + type;
+  s.classList.remove('hidden');
+}
+
+function showConfirmation(result, input) {
+  document.getElementById('receive-form').classList.add('hidden');
+  const conf = document.getElementById('confirmation');
+  conf.classList.remove('hidden');
+  const sign = result.diff_kg > 0 ? '+' : '';
+  document.getElementById('conf-icon').textContent = result.discrepancy ? '🚨' : '✅';
+  document.getElementById('conf-title').textContent = result.discrepancy
+    ? 'Discrepancy flagged'
+    : 'Pallet registered';
+  document.getElementById('conf-waybill').textContent = 'Waybill: ' + (input.waybill || '(no waybill)');
+  document.getElementById('conf-weights').textContent = input.stated + ' kg → ' + input.actual + ' kg';
+  document.getElementById('conf-diff').textContent = 'Difference: ' + sign + result.diff_kg + ' kg (' + sign + result.diff_pct + '%)';
+  document.getElementById('conf-diff').style.color = result.discrepancy ? 'var(--danger)' : 'var(--success)';
+  document.getElementById('conf-notify').textContent = result.discrepancy
+    ? '📧 Ops team notified by email'
+    : 'No notification needed — within tolerance';
+  document.getElementById('sheet-link').href = SHEET_URL;
+  window.scrollTo(0, 0);
+}
+
+document.getElementById('new-receipt-btn').addEventListener('click', () => {
+  // Reset form but keep operator
+  document.getElementById('waybill').value = '';
+  document.getElementById('origin').value = '';
+  document.getElementById('origin-other').value = '';
+  document.getElementById('origin-other').classList.add('hidden');
+  document.getElementById('stated-weight').value = '';
+  document.getElementById('actual-weight').value = '';
+  document.getElementById('damage').checked = false;
+  document.getElementById('notes').value = '';
+  for (let i = 0; i < 6; i++) {
+    delete photos[i];
+    const slot = document.getElementById(`photo-slot-${i}`);
+    slot.innerHTML = '+<input type="file" accept="image/*" capture="environment" id="photo-input-' + i + '" style="display:none">';
+    slot.classList.remove('has-photo');
+    rewireSlotInput(i);
+  }
+  document.getElementById('diff-preview').textContent = 'Enter both weights to see difference';
+  document.getElementById('diff-preview').className = 'diff-preview';
+  document.getElementById('submit-btn').disabled = false;
+  document.getElementById('submit-btn').textContent = 'Submit receipt';
+  document.getElementById('status').classList.add('hidden');
+  document.getElementById('confirmation').classList.add('hidden');
+  document.getElementById('receive-form').classList.remove('hidden');
+  document.getElementById('waybill').focus();
+  window.scrollTo(0, 0);
+});
+</script>
+</body>
+</html>
